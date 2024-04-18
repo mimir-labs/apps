@@ -999,6 +999,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mimirdev/apps-inject@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "@mimirdev/apps-inject@npm:0.2.0"
+  dependencies:
+    "@mimirdev/apps-sdk": "npm:0.1.0"
+  checksum: 10/262838144f61bff90b297af7174d7bbf5bec24f50b182aaa91840e83ce57bcc7c63dd7d0369bdc674c13777cc945fa92fe03147a4c036dadfff99294b8642947
+  languageName: node
+  linkType: hard
+
+"@mimirdev/apps-sdk@npm:0.1.0, @mimirdev/apps-sdk@npm:^0.1.0":
+  version: 0.1.0
+  resolution: "@mimirdev/apps-sdk@npm:0.1.0"
+  dependencies:
+    "@polkadot/util": "npm:^12.6.2"
+    eventemitter3: "npm:^5.0.1"
+  peerDependencies:
+    "@polkadot/api": "*"
+    "@polkadot/types": "*"
+  checksum: 10/9952322d9a48a48244b126e1453c018df58b4aeaf921c4058b2dfc6009073c0d5b8e2dc3121fa2dfe9f3c5d0643073a9069d2358f058a8150b1005ba9c95ab8a
+  languageName: node
+  linkType: hard
+
 "@multiformats/mafmt@npm:^11.0.3":
   version: 11.0.3
   resolution: "@multiformats/mafmt@npm:11.0.3"
@@ -2274,6 +2296,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@polkadot/react-api@workspace:packages/react-api"
   dependencies:
+    "@mimirdev/apps-inject": "npm:^0.2.0"
     "@polkadot/api": "npm:^10.12.4"
     "@polkadot/extension-compat-metamask": "npm:^0.46.9"
     "@polkadot/extension-dapp": "npm:^0.46.9"
@@ -2424,6 +2447,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@polkadot/react-signer@workspace:packages/react-signer"
   dependencies:
+    "@mimirdev/apps-sdk": "npm:^0.1.0"
     "@polkadot/hw-ledger": "npm:^12.6.2"
     "@polkadot/react-components": "npm:^0.135.2-53-x"
   peerDependencies:

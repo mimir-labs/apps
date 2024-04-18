@@ -9,6 +9,8 @@ import type { KeyringStore } from '@polkadot/ui-keyring/types';
 import type { ApiProps, ApiState, InjectedAccountExt } from './types.js';
 
 import { ChopsticksProvider, setStorage } from '@acala-network/chopsticks-core';
+import { inject, isMimirReady } from '@mimirdev/apps-inject';
+import { MIMIR_REGEXP } from '@mimirdev/apps-inject/consts';
 import * as Sc from '@substrate/connect';
 import React, { useEffect, useMemo, useState } from 'react';
 import store from 'store';
@@ -262,6 +264,16 @@ async function createApi (apiUrl: string, signer: ApiSigner, isLocalFork: boolea
     // See https://github.com/polkadot-js/api/pull/4672#issuecomment-1078843960
     if (isLight) {
       await provider.connect();
+    }
+
+    const origin = await isMimirReady();
+
+    if (origin) {
+      if (MIMIR_REGEXP.test(origin)) {
+        inject();
+      } else if (process.env.NODE_ENV === 'development') {
+        inject();
+      }
     }
   } catch (error) {
     onError(error);
