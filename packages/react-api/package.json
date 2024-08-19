@@ -14,17 +14,17 @@
   },
   "sideEffects": true,
   "type": "module",
-  "version": "0.135.2-53-x",
+  "version": "0.142.2-27-x",
   "browser": {
     "fs": false,
     "path": false
   },
   "dependencies": {
-    "@mimirdev/apps-inject": "^0.2.0",
-    "@polkadot/api": "^10.12.4",
-    "@polkadot/extension-compat-metamask": "^0.46.9",
-    "@polkadot/extension-dapp": "^0.46.9",
-    "@polkadot/rpc-provider": "^10.12.4",
+    "@mimirdev/apps-inject": "^0.3.0",
+    "@polkadot/api": "^12.2.1",
+    "@polkadot/extension-compat-metamask": "^0.51.1",
+    "@polkadot/extension-dapp": "^0.51.1",
+    "@polkadot/rpc-provider": "^12.2.1",
     "fflate": "^0.8.1",
     "rxjs": "^7.8.1"
   },

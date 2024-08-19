@@ -4,7 +4,7 @@
 import type { ApiPromise } from '@polkadot/api';
 import type { SignerOptions } from '@polkadot/api/submittable/types';
 import type { SubmittableExtrinsic } from '@polkadot/api/types';
-import type { Ledger } from '@polkadot/hw-ledger';
+import type { Ledger, LedgerGeneric } from '@polkadot/hw-ledger';
 import type { KeyringPair } from '@polkadot/keyring/types';
 import type { QueueTx, QueueTxMessageSetStatus } from '@polkadot/react-components/Status/types';
 import type { Option } from '@polkadot/types';
@@ -13,18 +13,19 @@ import type { BN } from '@polkadot/util';
 import type { HexString } from '@polkadot/util/types';
 import type { AddressFlags, AddressProxy, QrState } from './types.js';
 
-import { checkCall } from '@mimirdev/apps-sdk';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { web3FromSource } from '@polkadot/extension-dapp';
 import { Button, ErrorBoundary, Modal, Output, styled, Toggle } from '@polkadot/react-components';
 import { useApi, useLedger, useQueue, useToggle } from '@polkadot/react-hooks';
 import { keyring } from '@polkadot/ui-keyring';
+import { settings } from '@polkadot/ui-settings';
 import { assert, isString, nextTick } from '@polkadot/util';
 import { addressEq } from '@polkadot/util-crypto';
 
 import { AccountSigner, LedgerSigner, QrSigner } from './signers/index.js';
 import Address from './Address.js';
+import { checkCall } from './mimir.js';
 import Qr from './Qr.js';
 import SignFields from './SignFields.js';
 import Tip from './Tip.js';
@@ -114,7 +115,6 @@ async function signAndSend (queueSetTxStatus: QueueTxMessageSetStatus, currentIt
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const method = api.registry.createType('Call', result.payload.method);
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           if (!checkCall(api, method, tx.method)) {
             throw new Error('not safe tx');
           }
@@ -215,12 +215,12 @@ async function wrapTx (api: ApiPromise, currentItem: QueueTx, { isMultiCall, mul
   return tx;
 }
 
-async function extractParams (api: ApiPromise, address: string, options: Partial<SignerOptions>, getLedger: () => Ledger, setQrState: (state: QrState) => void): Promise<['qr' | 'signing', string, Partial<SignerOptions>, boolean, isMimir: boolean]> {
+async function extractParams (api: ApiPromise, address: string, options: Partial<SignerOptions>, getLedger: () => LedgerGeneric | Ledger, setQrState: (state: QrState) => void): Promise<['qr' | 'signing', string, Partial<SignerOptions>, boolean, isMimir: boolean]> {
   const pair = keyring.getPair(address);
   const { meta: { accountOffset, addressOffset, isExternal, isHardware, isInjected, isLocal, isProxied, source } } = pair;
 
   if (isHardware) {
-    return ['signing', address, { ...options, signer: new LedgerSigner(api.registry, getLedger, accountOffset || 0, addressOffset || 0) }, false, false];
+    return ['signing', address, { ...options, signer: new LedgerSigner(api, getLedger, accountOffset || 0, addressOffset || 0) }, false, false];
   } else if (isLocal) {
     return ['signing', address, { ...options, signer: new AccountSigner(api.registry, pair) }, true, false];
   } else if (isExternal && !isProxied) {
@@ -311,10 +311,18 @@ function TxSigned ({ className, currentItem, isQueueSubmit, queueSize, requestAd
           passwordError = unlockAccount(senderInfo);
         } else if (flags.isHardware) {
           try {
+            const currApp = settings.get().ledgerApp;
             const ledger = getLedger();
-            const { address } = await ledger.getAddress(false, flags.accountOffset, flags.addressOffset);
 
-            console.log(`Signing with Ledger address ${address}`);
+            if (currApp === 'migration' || currApp === 'generic') {
+              const { address } = await (ledger as LedgerGeneric).getAddress(api.consts.system.ss58Prefix.toNumber(), false, flags.accountOffset, flags.addressOffset);
+
+              console.log(`Signing with Ledger address ${address}`);
+            } else {
+              const { address } = await (ledger as Ledger).getAddress(false, flags.accountOffset, flags.addressOffset);
+
+              console.log(`Signing with Ledger address ${address}`);
+            }
           } catch (error) {
             console.error(error);
 
@@ -329,7 +337,7 @@ function TxSigned ({ className, currentItem, isQueueSubmit, queueSize, requestAd
 
       return !passwordError;
     },
-    [flags, getLedger, senderInfo, t]
+    [flags, getLedger, senderInfo, t, api.consts.system.ss58Prefix]
   );
 
   const _onSendPayload = useCallback(

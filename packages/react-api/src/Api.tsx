@@ -20,7 +20,7 @@ import { deriveMapCache, setDeriveCache } from '@polkadot/api-derive/util';
 import { ethereumChains, typesBundle } from '@polkadot/apps-config';
 import { web3Accounts, web3Enable } from '@polkadot/extension-dapp';
 import { TokenUnit } from '@polkadot/react-components/InputConsts/units';
-import { useApiUrl, useEndpoint, useQueue } from '@polkadot/react-hooks';
+import { useApiUrl, useEndpoint, usePeopleEndpoint, useQueue } from '@polkadot/react-hooks';
 import { ApiCtx } from '@polkadot/react-hooks/ctx/Api';
 import { ApiSigner } from '@polkadot/react-signer/signers';
 import { keyring } from '@polkadot/ui-keyring';
@@ -234,21 +234,38 @@ async function createApi (apiUrl: string, signer: ApiSigner, isLocalFork: boolea
   const types = getDevTypes();
   const isLight = apiUrl.startsWith('light://');
   let provider;
+
   let chopsticksFork: Blockchain | null = null;
+  let chopsticksProvider;
+  let setupChopsticksSuccess = false;
+
+  if (isLocalFork) {
+    try {
+      chopsticksProvider = await ChopsticksProvider.fromEndpoint(apiUrl);
+      chopsticksFork = chopsticksProvider.chain;
+      await setStorage(chopsticksFork, {
+        System: {
+          Account: [
+            [['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'], { data: { free: 5000 * 1e12 }, providers: 1 }]
+          ]
+        }
+      });
+      setupChopsticksSuccess = true;
+    } catch (error) {
+      store.set('localFork', '');
+      const msg = `Local fork failed, please refresh to switch back to default API provider. This is likely due to chain not supported by chopsticks.
+      Please consider to send an issue to https://github.com/AcalaNetwork/chopsticks.`;
+
+      onError(new Error(msg));
+      throw error;
+    }
+  }
 
   try {
     if (isLight) {
       provider = await getLightProvider(apiUrl.replace('light://', ''));
-    } else if (isLocalFork) {
-      provider = await ChopsticksProvider.fromEndpoint(apiUrl);
-      chopsticksFork = provider.chain;
-      await setStorage(chopsticksFork, {
-        System: {
-          Account: [
-            [['5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'], { data: { free: 1000 * 1e12 }, providers: 1 }]
-          ]
-        }
-      });
+    } else if (isLocalFork && setupChopsticksSuccess) {
+      provider = chopsticksProvider;
     } else {
       provider = new WsProvider(apiUrl);
     }
@@ -263,7 +280,7 @@ async function createApi (apiUrl: string, signer: ApiSigner, isLocalFork: boolea
 
     // See https://github.com/polkadot-js/api/pull/4672#issuecomment-1078843960
     if (isLight) {
-      await provider.connect();
+      await provider?.connect();
     }
 
     const origin = await isMimirReady();
@@ -291,20 +308,29 @@ export function ApiCtxRoot ({ apiUrl, children, isElectron, store: keyringStore 
   const [extensions, setExtensions] = useState<InjectedExtension[] | undefined>();
   const [isLocalFork] = useState(store.get('localFork') === apiUrl);
   const apiEndpoint = useEndpoint(apiUrl);
+  const peopleEndpoint = usePeopleEndpoint(apiEndpoint?.relayName || apiEndpoint?.info);
   const relayUrls = useMemo(
     () => (apiEndpoint?.valueRelay && isNumber(apiEndpoint.paraId) && (apiEndpoint.paraId < 2000))
       ? apiEndpoint.valueRelay
       : null,
     [apiEndpoint]
   );
+  const peopleUrls = useMemo(
+    () => (peopleEndpoint?.isPeople && !apiEndpoint?.isPeople && peopleEndpoint?.providers && apiEndpoint?.isPeopleForIdentity)
+      ? peopleEndpoint.providers
+      : null,
+    [apiEndpoint, peopleEndpoint]
+  );
   const apiRelay = useApiUrl(relayUrls);
+  const apiSystemPeople = useApiUrl(peopleUrls);
   const createLink = useMemo(
     () => makeCreateLink(apiUrl, isElectron),
     [apiUrl, isElectron]
   );
+  const enableIdentity = apiEndpoint?.isPeople || (isNumber(apiEndpoint?.paraId) && (apiEndpoint?.paraId >= 2000)) || apiEndpoint?.info?.toLowerCase() === 'paseo';
   const value = useMemo<ApiProps>(
-    () => objectSpread({}, state, { api: statics.api, apiEndpoint, apiError, apiRelay, apiUrl, createLink, extensions, isApiConnected, isApiInitialized, isElectron, isLocalFork, isWaitingInjected: !extensions }),
-    [apiError, createLink, extensions, isApiConnected, isApiInitialized, isElectron, isLocalFork, state, apiEndpoint, apiRelay, apiUrl]
+    () => objectSpread({}, state, { api: statics.api, apiEndpoint, apiError, apiIdentity: ((apiEndpoint?.isPeopleForIdentity && apiSystemPeople) || statics.api), apiRelay, apiSystemPeople, apiUrl, createLink, enableIdentity, extensions, isApiConnected, isApiInitialized, isElectron, isLocalFork, isWaitingInjected: !extensions }),
+    [apiError, createLink, extensions, isApiConnected, isApiInitialized, isElectron, isLocalFork, state, apiEndpoint, apiRelay, apiUrl, apiSystemPeople, enableIdentity]
   );
 
   // initial initialization
