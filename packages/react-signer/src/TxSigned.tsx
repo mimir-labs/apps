@@ -98,12 +98,14 @@ async function fakeSignForChopsticks (api: ApiPromise, tx: SubmittableExtrinsic<
   tx.signature.set(mockSignature);
 }
 
-async function signAndSend (queueSetTxStatus: QueueTxMessageSetStatus, currentItem: QueueTx, tx: SubmittableExtrinsic<'promise'>, pairOrAddress: KeyringPair | string, options: Partial<SignerOptions>, api: ApiPromise, isMockSign: boolean, isMimir: boolean): Promise<void> {
+async function signAndSend (queueSetTxStatus: QueueTxMessageSetStatus, currentItem: QueueTx, tx: SubmittableExtrinsic<'promise'>, pairOrAddress: KeyringPair | string, options: Partial<SignerOptions>, api: ApiPromise, isMockSign: boolean): Promise<void> {
   currentItem.txStartCb && currentItem.txStartCb();
 
   try {
     if (!isMockSign) {
-      if (isMimir) {
+      const accountMeta = keyring.getAccount(isString(pairOrAddress) ? pairOrAddress : pairOrAddress.address)?.meta;
+
+      if (accountMeta?.source === 'mimir') {
         if (options.signer?.signPayload) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           const result: any = await options.signer.signPayload({
@@ -215,16 +217,16 @@ async function wrapTx (api: ApiPromise, currentItem: QueueTx, { isMultiCall, mul
   return tx;
 }
 
-async function extractParams (api: ApiPromise, address: string, options: Partial<SignerOptions>, getLedger: () => LedgerGeneric | Ledger, setQrState: (state: QrState) => void): Promise<['qr' | 'signing', string, Partial<SignerOptions>, boolean, isMimir: boolean]> {
+async function extractParams (api: ApiPromise, address: string, options: Partial<SignerOptions>, getLedger: () => LedgerGeneric | Ledger, setQrState: (state: QrState) => void): Promise<['qr' | 'signing', string, Partial<SignerOptions>, boolean]> {
   const pair = keyring.getPair(address);
   const { meta: { accountOffset, addressOffset, isExternal, isHardware, isInjected, isLocal, isProxied, source } } = pair;
 
   if (isHardware) {
-    return ['signing', address, { ...options, signer: new LedgerSigner(api, getLedger, accountOffset || 0, addressOffset || 0) }, false, false];
+    return ['signing', address, { ...options, signer: new LedgerSigner(api, getLedger, accountOffset || 0, addressOffset || 0) }, false];
   } else if (isLocal) {
-    return ['signing', address, { ...options, signer: new AccountSigner(api.registry, pair) }, true, false];
+    return ['signing', address, { ...options, signer: new AccountSigner(api.registry, pair) }, true];
   } else if (isExternal && !isProxied) {
-    return ['qr', address, { ...options, signer: new QrSigner(api.registry, setQrState) }, false, false];
+    return ['qr', address, { ...options, signer: new QrSigner(api.registry, setQrState) }, false];
   } else if (isInjected) {
     if (!source) {
       throw new Error(`Unable to find injected source for ${address}`);
@@ -234,12 +236,12 @@ async function extractParams (api: ApiPromise, address: string, options: Partial
 
     assert(injected, `Unable to find a signer for ${address}`);
 
-    return ['signing', address, { ...options, signer: injected.signer }, false, injected.name === 'mimir'];
+    return ['signing', address, { ...options, signer: injected.signer }, false];
   }
 
   assert(addressEq(address, pair.address), `Unable to retrieve keypair for ${address}`);
 
-  return ['signing', address, { ...options, signer: new AccountSigner(api.registry, pair) }, false, false];
+  return ['signing', address, { ...options, signer: new AccountSigner(api.registry, pair) }, false];
 }
 
 function tryExtract (address: string | null): AddressFlags {
@@ -357,14 +359,14 @@ function TxSigned ({ className, currentItem, isQueueSubmit, queueSize, requestAd
   const _onSend = useCallback(
     async (queueSetTxStatus: QueueTxMessageSetStatus, currentItem: QueueTx, senderInfo: AddressProxy): Promise<void> => {
       if (senderInfo.signAddress) {
-        const [tx, [status, pairOrAddress, options, isMockSign, isMimir]] = await Promise.all([
+        const [tx, [status, pairOrAddress, options, isMockSign]] = await Promise.all([
           wrapTx(api, currentItem, senderInfo),
           extractParams(api, senderInfo.signAddress, { nonce: -1, tip }, getLedger, setQrState)
         ]);
 
         queueSetTxStatus(currentItem.id, status);
 
-        await signAndSend(queueSetTxStatus, currentItem, tx, pairOrAddress, options, api, isMockSign, isMimir);
+        await signAndSend(queueSetTxStatus, currentItem, tx, pairOrAddress, options, api, isMockSign);
       }
     },
     [api, getLedger, tip]
