@@ -146,11 +146,11 @@ export const prodChains: Omit<EndpointOption, 'teleport'>[] = [
     }
   },
   {
-    info: 'creditcoin',
+    info: 'creditcoin-classic',
     providers: {
       'Creditcoin Foundation': 'wss://mainnet.creditcoin.network/ws'
     },
-    text: 'Creditcoin',
+    text: 'Creditcoin Classic',
     ui: {
       color: '#2D353F',
       logo: chainsCreditcoinPNG
@@ -593,6 +593,7 @@ export const prodChains: Omit<EndpointOption, 'teleport'>[] = [
   },
   {
     info: 'vara',
+    isPeopleForIdentity: false,
     providers: {
       Blast: 'wss://vara-mainnet.public.blastapi.io',
       Gear: 'wss://rpc.vara.network',
