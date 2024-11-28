@@ -13,6 +13,7 @@ import type { BN } from '@polkadot/util';
 import type { HexString } from '@polkadot/util/types';
 import type { AddressFlags, AddressProxy, QrState } from './types.js';
 
+import { checkCallAsync } from '@mimirdev/apps-sdk';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { web3FromSource } from '@polkadot/extension-dapp';
@@ -25,7 +26,6 @@ import { addressEq } from '@polkadot/util-crypto';
 
 import { AccountSigner, LedgerSigner, QrSigner } from './signers/index.js';
 import Address from './Address.js';
-import { checkCall } from './mimir.js';
 import Qr from './Qr.js';
 import SignFields from './SignFields.js';
 import Tip from './Tip.js';
@@ -103,7 +103,8 @@ async function signAndSend (queueSetTxStatus: QueueTxMessageSetStatus, currentIt
 
   try {
     if (!isMockSign) {
-      const accountMeta = keyring.getAccount(isString(pairOrAddress) ? pairOrAddress : pairOrAddress.address)?.meta;
+      const address = isString(pairOrAddress) ? pairOrAddress : pairOrAddress.address;
+      const accountMeta = keyring.getAccount(address)?.meta;
 
       if (accountMeta?.source === 'mimir') {
         if (options.signer?.signPayload) {
@@ -112,12 +113,13 @@ async function signAndSend (queueSetTxStatus: QueueTxMessageSetStatus, currentIt
             address: isString(pairOrAddress) ? pairOrAddress : pairOrAddress.address,
             genesisHash: api.genesisHash.toHex(),
             method: tx.method.toHex()
-          } as unknown as any);
+          } as any);
 
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const method = api.registry.createType('Call', result.payload.method);
 
-          if (!checkCall(api, method, tx.method)) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          if (!(await checkCallAsync(api, method, result.payload.address as string, tx.method, address))) {
             throw new Error('not safe tx');
           }
 
@@ -361,7 +363,7 @@ function TxSigned ({ className, currentItem, isQueueSubmit, queueSize, requestAd
       if (senderInfo.signAddress) {
         const [tx, [status, pairOrAddress, options, isMockSign]] = await Promise.all([
           wrapTx(api, currentItem, senderInfo),
-          extractParams(api, senderInfo.signAddress, { nonce: -1, tip }, getLedger, setQrState)
+          extractParams(api, senderInfo.signAddress, { nonce: -1, tip, withSignedTransaction: true }, getLedger, setQrState)
         ]);
 
         queueSetTxStatus(currentItem.id, status);
@@ -377,7 +379,7 @@ function TxSigned ({ className, currentItem, isQueueSubmit, queueSize, requestAd
       if (senderInfo.signAddress) {
         const [tx, [, pairOrAddress, options, isMockSign]] = await Promise.all([
           wrapTx(api, currentItem, senderInfo),
-          extractParams(api, senderInfo.signAddress, { ...signedOptions, tip }, getLedger, setQrState)
+          extractParams(api, senderInfo.signAddress, { ...signedOptions, tip, withSignedTransaction: true }, getLedger, setQrState)
         ]);
 
         setSignedTx(await signAsync(queueSetTxStatus, currentItem, tx, pairOrAddress, options, api, isMockSign));
