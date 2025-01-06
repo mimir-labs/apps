@@ -1,4 +1,4 @@
-// Copyright 2017-2024 @polkadot/apps-config authors & contributors
+// Copyright 2017-2025 @polkadot/apps-config authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
 import type { BN } from '@polkadot/util';
@@ -33,7 +33,7 @@ export const Subscan: ExternalDef = {
     Dock: 'dock',
     'Dolphin Parachain Testnet': 'dolphin',
     'Humanode Mainnet': 'humanode',
-    HydraDX: 'hydradx',
+    Hydration: 'hydration',
     'Integritee Network (Kusama)': 'integritee',
     Interlay: 'interlay',
     Joystream: 'joystream',
