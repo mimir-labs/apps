@@ -195,7 +195,7 @@ function Address ({ currentItem, onChange, onEnter, passwordError, requestAddres
   const [multiAddress, setMultiAddress] = useState<string | null>(null);
   const [proxyAddress, setProxyAddress] = useState<string | null>(null);
   const [isMultiCall, setIsMultiCall] = useState(false);
-  const [isProxyActive, setIsProxyActive] = useState(true);
+  const [isProxyActive, setIsProxyActive] = useState(false);
   const [multiInfo, setMultInfo] = useState<MultiState | null>(null);
   const [proxyInfo, setProxyInfo] = useState<ProxyState | null>(null);
   const [{ isUnlockCached, signPassword }, setSignPassword] = useState<PasswordState>(() => ({ isUnlockCached: false, signPassword: '' }));
@@ -309,7 +309,7 @@ function Address ({ currentItem, onChange, onEnter, passwordError, requestAddres
         <Modal.Columns hint={t('This could either be an approval for the hash or with full call details. The call as last approval triggers execution.')}>
           <Toggle
             className='tipToggle'
-            isDisabled={proxyInfo.isProxied}
+            isDisabled
             label={
               isProxyActive
                 ? t('Use a proxy for this call')

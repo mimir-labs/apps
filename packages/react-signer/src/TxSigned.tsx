@@ -1,6 +1,10 @@
 // Copyright 2017-2025 @polkadot/react-signer authors & contributors
 // SPDX-License-Identifier: Apache-2.0
 
+// This is for the use of `Ledger`
+//
+/* eslint-disable deprecation/deprecation */
+
 import type { ApiPromise } from '@polkadot/api';
 import type { SignerOptions } from '@polkadot/api/submittable/types';
 import type { SubmittableExtrinsic } from '@polkadot/api/types';
@@ -13,7 +17,6 @@ import type { BN } from '@polkadot/util';
 import type { HexString } from '@polkadot/util/types';
 import type { AddressFlags, AddressProxy, QrState } from './types.js';
 
-import { checkCallAsync } from '@mimirdev/apps-sdk';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { web3FromSource } from '@polkadot/extension-dapp';
@@ -21,7 +24,7 @@ import { Button, ErrorBoundary, Modal, Output, styled, Toggle } from '@polkadot/
 import { useApi, useLedger, useQueue, useToggle } from '@polkadot/react-hooks';
 import { keyring } from '@polkadot/ui-keyring';
 import { settings } from '@polkadot/ui-settings';
-import { assert, isString, nextTick } from '@polkadot/util';
+import { assert, nextTick } from '@polkadot/util';
 import { addressEq } from '@polkadot/util-crypto';
 
 import { AccountSigner, LedgerSigner, QrSigner } from './signers/index.js';
@@ -103,34 +106,9 @@ async function signAndSend (queueSetTxStatus: QueueTxMessageSetStatus, currentIt
 
   try {
     if (!isMockSign) {
-      const address = isString(pairOrAddress) ? pairOrAddress : pairOrAddress.address;
-      const accountMeta = keyring.getAccount(address)?.meta;
-
-      if (accountMeta?.source === 'mimir') {
-        if (options.signer?.signPayload) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          const result: any = await options.signer.signPayload({
-            address: isString(pairOrAddress) ? pairOrAddress : pairOrAddress.address,
-            genesisHash: api.genesisHash.toHex(),
-            method: tx.method.toHex()
-          } as any);
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          const method = api.registry.createType('Call', result.payload.method);
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-          if (!(await checkCallAsync(api, method, result.payload.address as string, tx.method, address))) {
-            throw new Error('not safe tx');
-          }
-
-          tx = api.tx[method.section][method.method](...method.args);
-
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-          tx.addSignature(result.signer, result.signature, result.payload);
-        }
-      } else {
-        await tx.signAsync(pairOrAddress, options);
-      }
+      const unsubscribe = await tx.signAndSend(pairOrAddress, options, handleTxResults('signAndSend', queueSetTxStatus, currentItem, (): void => {
+        unsubscribe();
+      }));
     } else {
       await fakeSignForChopsticks(api, tx, pairOrAddress as string);
     }
@@ -138,10 +116,6 @@ async function signAndSend (queueSetTxStatus: QueueTxMessageSetStatus, currentIt
     console.info('sending', tx.toHex());
 
     queueSetTxStatus(currentItem.id, 'sending');
-
-    const unsubscribe = await tx.send(handleTxResults('signAndSend', queueSetTxStatus, currentItem, (): void => {
-      unsubscribe();
-    }));
   } catch (error) {
     console.error('signAndSend: error:', error);
     queueSetTxStatus(currentItem.id, 'error', {}, error as Error);
