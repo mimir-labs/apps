@@ -14,12 +14,12 @@
   },
   "sideEffects": false,
   "type": "module",
-  "version": "0.146.2-26-x",
+  "version": "0.147.2-4-x",
   "dependencies": {
     "@mimirdev/apps-sdk": "^1.1.0",
     "@polkadot-api/merkleize-metadata": "^1.1.9",
-    "@polkadot/hw-ledger": "^13.2.3",
-    "@polkadot/react-components": "^0.146.2-26-x"
+    "@polkadot/hw-ledger": "^13.3.1",
+    "@polkadot/react-components": "^0.147.2-4-x"
   },
   "peerDependencies": {
     "react": "*",

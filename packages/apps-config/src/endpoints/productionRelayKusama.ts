@@ -76,8 +76,8 @@ export const prodParasKusama: Omit<EndpointOption, 'teleport'>[] = [
     info: 'bajun',
     paraId: 2119,
     providers: {
-      AjunaNetwork: 'wss://rpc-para.bajun.network',
-      OnFinality: 'wss://bajun.api.onfinality.io/public-ws'
+      AjunaNetwork: 'wss://rpc-para.bajun.network'
+      // OnFinality: 'wss://bajun.api.onfinality.io/public-ws'
       // RadiumBlock: 'wss://bajun.public.curie.radiumblock.co/ws' https://github.com/polkadot-js/apps/issues/11157
     },
     text: 'Bajun Network',
@@ -304,7 +304,6 @@ export const prodParasKusama: Omit<EndpointOption, 'teleport'>[] = [
     paraId: 2125,
     providers: {
       // 'InvArch Team': 'wss://tinker.invarch.network', // https://github.com/polkadot-js/apps/issues/8623
-      Dwellir: 'wss://tinkernet-rpc.dwellir.com',
       // OnFinality: 'wss://invarch-tinkernet.api.onfinality.io/public-ws', // https://github.com/polkadot-js/apps/issues/9955
       'light client': 'light://substrate-connect/kusama/tinkernet'
     },
@@ -355,7 +354,7 @@ export const prodParasKusama: Omit<EndpointOption, 'teleport'>[] = [
       Dwellir: 'wss://khala-rpc.dwellir.com',
       Helikon: 'wss://rpc.helikon.io/khala',
       OnFinality: 'wss://khala.api.onfinality.io/public-ws',
-      Phala: 'wss://khala-api.phala.network/ws',
+      // Phala: 'wss://khala-api.phala.network/ws', // https://github.com/polkadot-js/apps/issues/11178
       RadiumBlock: 'wss://khala.public.curie.radiumblock.co/ws'
       // Rockx: 'wss://rockx-khala.w3node.com/polka-public-khala/ws' // https://github.com/polkadot-js/apps/issues/10728
     },
